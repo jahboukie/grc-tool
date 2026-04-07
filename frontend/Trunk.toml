@@ -1,0 +1,6 @@
+[build]
+target = "index.html"
+dist = "dist"
+
+[watch]
+ignore = ["target_dev", "test_dist", "err.txt", "clean_err.txt", "build.log", "../frontend_target", "../target"]

@@ -1,0 +1,14 @@
+pub mod dashboard;
+pub mod engagements;
+pub mod engagement_detail;
+pub mod ai_system_detail;
+pub mod fria;
+pub mod framework_navigator;
+pub mod cross_reference;
+pub mod risk_matrix;
+pub mod evidence_vault;
+pub mod gap_analysis;
+pub mod reports;
+pub mod audit_trail;
+pub mod llm_assistant;
+pub mod settings;
