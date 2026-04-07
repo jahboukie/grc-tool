@@ -44,6 +44,7 @@ pub fn run() {
             commands::fria_cmds::list_fria_assessments,
             // Cross-References
             commands::requirement_cmds::get_cross_references,
+            commands::requirement_cmds::list_cross_references,
             // Risk
             commands::risk_cmds::create_risk_entry,
             commands::risk_cmds::list_risk_entries,
@@ -51,11 +52,13 @@ pub fn run() {
             commands::risk_cmds::delete_risk_entry,
             commands::risk_cmds::get_risk_matrix_data,
             // Evidence
+            commands::evidence_cmds::pick_evidence_file,
             commands::evidence_cmds::upload_evidence,
             commands::evidence_cmds::list_evidence,
             commands::evidence_cmds::delete_evidence,
             commands::evidence_cmds::link_evidence,
             commands::evidence_cmds::unlink_evidence,
+            commands::evidence_cmds::list_evidence_links,
             // Tasks
             commands::task_cmds::create_task,
             commands::task_cmds::list_tasks,

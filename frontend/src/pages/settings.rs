@@ -3,6 +3,32 @@ use grc_shared::models::{AppConfig, UpdateConfigDto};
 
 use crate::api::invoke;
 
+const LOCAL_PROVIDERS: &[(&str, &str)] = &[
+    ("ollama", "Ollama"),
+    ("lm_studio", "LM Studio"),
+];
+
+const CLOUD_PROVIDERS: &[(&str, &str)] = &[
+    ("openai", "OpenAI"),
+    ("anthropic", "Anthropic"),
+    ("gemini", "Google Gemini"),
+];
+
+fn default_model(provider: &str) -> &'static str {
+    match provider {
+        "openai" => "gpt-4o",
+        "anthropic" => "claude-sonnet-4-20250514",
+        "ollama" => "llama3",
+        "lm_studio" => "gemma-4-e2b-it",
+        "gemini" => "gemini-2.5-flash",
+        _ => "",
+    }
+}
+
+fn needs_api_key(provider: &str) -> bool {
+    matches!(provider, "openai" | "anthropic" | "gemini")
+}
+
 #[component]
 pub fn SettingsPage() -> impl IntoView {
     let config = create_resource(|| (), |_| async {
@@ -14,6 +40,12 @@ pub fn SettingsPage() -> impl IntoView {
     let (api_key, set_api_key) = create_signal(String::new());
     let (evidence_path, set_evidence_path) = create_signal(String::new());
     let (save_msg, set_save_msg) = create_signal::<Option<String>>(None);
+
+    let on_provider_change = move |e: web_sys::Event| {
+        let val = event_target_value(&e);
+        set_provider.set(val.clone());
+        set_model.set(default_model(&val).to_string());
+    };
 
     let on_save = move |ev: web_sys::SubmitEvent| {
         ev.prevent_default();
@@ -41,7 +73,6 @@ pub fn SettingsPage() -> impl IntoView {
             <Suspense fallback=move || view! { <p>"Loading settings…"</p> }>
                 {move || config.get().map(|result| match result {
                     Ok(cfg) => {
-                        // Initialize signals with current config
                         set_provider.set(cfg.llm_provider.clone());
                         set_model.set(cfg.llm_model.clone());
                         set_evidence_path.set(cfg.evidence_storage_path.clone());
@@ -52,26 +83,39 @@ pub fn SettingsPage() -> impl IntoView {
                                     <label>"Provider"
                                         <select
                                             prop:value=provider
-                                            on:change=move |e| set_provider.set(event_target_value(&e))
+                                            on:change=on_provider_change
                                         >
                                             <option value="">"None"</option>
-                                            <option value="openai">"OpenAI"</option>
-                                            <option value="anthropic">"Anthropic"</option>
-                                            <option value="ollama">"Ollama (local)"</option>
+                                            <optgroup label="Local (no API key)">
+                                                {LOCAL_PROVIDERS.iter().map(|(val, label)| view! {
+                                                    <option value=*val>{*label}</option>
+                                                }).collect_view()}
+                                            </optgroup>
+                                            <optgroup label="Cloud (requires API key)">
+                                                {CLOUD_PROVIDERS.iter().map(|(val, label)| view! {
+                                                    <option value=*val>{*label}</option>
+                                                }).collect_view()}
+                                            </optgroup>
                                         </select>
                                     </label>
                                     <label>"Model"
-                                        <input type="text" placeholder="e.g. gpt-4o, claude-sonnet-4-20250514, llama3"
+                                        <input type="text"
+                                            placeholder=move || format!("e.g. {}", default_model(&provider.get()))
                                             prop:value=model
                                             on:input=move |e| set_model.set(event_target_value(&e))
                                         />
                                     </label>
-                                    <label>"API Key"
-                                        <input type="password" placeholder="Leave blank to keep existing"
-                                            prop:value=api_key
-                                            on:input=move |e| set_api_key.set(event_target_value(&e))
-                                        />
-                                    </label>
+                                    <Show when=move || needs_api_key(&provider.get())>
+                                        <label>"API Key"
+                                            <input type="password" placeholder="Leave blank to keep existing"
+                                                prop:value=api_key
+                                                on:input=move |e| set_api_key.set(event_target_value(&e))
+                                            />
+                                        </label>
+                                    </Show>
+                                    <Show when=move || !needs_api_key(&provider.get()) && !provider.get().is_empty()>
+                                        <p style="font-size:0.85rem;opacity:0.7;">"Local provider — no API key needed."</p>
+                                    </Show>
                                 </fieldset>
                                 <fieldset>
                                     <legend>"Storage"</legend>

@@ -733,6 +733,21 @@ pub fn EngagementDetailPage() -> impl IntoView {
                     })}
                 </Suspense>
             </section>
+
+            <section style="margin-top:2rem;">
+                <h2>"Evidence & Reports"</h2>
+                <div style="display:flex;gap:1rem;">
+                    <A href=format!("/evidence")>
+                        <button class="outline">"Evidence Vault"</button>
+                    </A>
+                    <A href=format!("/gap-analysis")>
+                        <button class="outline">"Gap Analysis"</button>
+                    </A>
+                    <A href=format!("/reports")>
+                        <button class="outline">"Reports"</button>
+                    </A>
+                </div>
+            </section>
         </div>
     }
 }

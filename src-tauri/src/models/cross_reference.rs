@@ -59,3 +59,26 @@ pub async fn get_for_gap(
 
     Ok(rows.iter().map(row_to_cross_ref).collect())
 }
+
+pub async fn list_all(pool: &PgPool) -> Result<Vec<CrossReferenceExpanded>, String> {
+    let rows = sqlx::query("SELECT * FROM cross_references ORDER BY id")
+        .fetch_all(pool)
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let mut results = Vec::new();
+    for row in &rows {
+        let cr = row_to_cross_ref(row);
+        let source = requirement::get(pool, cr.source_requirement_id).await?;
+        let target = requirement::get(pool, cr.target_requirement_id).await?;
+        results.push(CrossReferenceExpanded {
+            id: cr.id,
+            source,
+            target,
+            relationship: cr.relationship,
+            notes: cr.notes,
+        });
+    }
+
+    Ok(results)
+}

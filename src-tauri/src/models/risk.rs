@@ -199,22 +199,14 @@ pub async fn get_matrix_data(
         list(pool, None).await?
     };
 
-    let mut cells = Vec::new();
-    for l in 1..=5 {
-        for i in 1..=5 {
-            let risk_ids: Vec<Uuid> = entries
-                .iter()
-                .filter(|e| e.likelihood.value() == l && e.impact.value() == i)
-                .map(|e| e.id)
-                .collect();
-            cells.push(RiskMatrixCell {
-                likelihood: l,
-                impact: i,
-                score: l * i,
-                risk_ids,
-            });
-        }
+    // Build 5×5 matrix: matrix[likelihood_idx][impact_idx] → risk IDs
+    // Indices are 0-based (0 = Rare/Negligible, 4 = AlmostCertain/Catastrophic)
+    let mut matrix: Vec<Vec<Vec<Uuid>>> = vec![vec![vec![]; 5]; 5];
+    for entry in &entries {
+        let li = (entry.likelihood.value() - 1) as usize;
+        let ii = (entry.impact.value() - 1) as usize;
+        matrix[li][ii].push(entry.id);
     }
 
-    Ok(RiskMatrixData { entries, cells })
+    Ok(RiskMatrixData { entries, matrix })
 }

@@ -687,15 +687,9 @@ pub struct FrameworkCompliance {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RiskMatrixData {
     pub entries: Vec<RiskEntry>,
-    pub cells: Vec<RiskMatrixCell>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct RiskMatrixCell {
-    pub likelihood: i32,
-    pub impact: i32,
-    pub score: i32,
-    pub risk_ids: Vec<Uuid>,
+    /// 5×5 grid: matrix[likelihood_idx][impact_idx] → list of risk IDs.
+    /// Indices are 0-based (0 = lowest, 4 = highest).
+    pub matrix: Vec<Vec<Vec<Uuid>>>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

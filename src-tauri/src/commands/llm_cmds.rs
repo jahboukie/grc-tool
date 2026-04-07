@@ -24,8 +24,33 @@ pub async fn query_llm(
     let context = llm::client::build_context(&pool, dto.engagement_id, dto.ai_system_id).await?;
     let system_prompt = llm::client::build_system_prompt(&context);
 
+    // Fetch recent conversation history for multi-turn context (last 10 turns)
+    let history_rows = if let Some(eid) = dto.engagement_id {
+        sqlx::query(
+            "SELECT query, response FROM llm_conversations
+             WHERE engagement_id = $1
+             ORDER BY created_at DESC LIMIT 10"
+        )
+        .bind(eid)
+        .fetch_all(&*pool)
+        .await
+    } else {
+        sqlx::query(
+            "SELECT query, response FROM llm_conversations
+             ORDER BY created_at DESC LIMIT 10"
+        )
+        .fetch_all(&*pool)
+        .await
+    }
+    .map_err(|e| e.to_string())?;
+
+    let mut history: Vec<(String, String)> = history_rows.iter().map(|r| {
+        (r.get::<String, _>("query"), r.get::<String, _>("response"))
+    }).collect();
+    history.reverse(); // oldest first for chronological order
+
     // Call LLM
-    let response = llm::client::call_llm(&provider, &api_key, &model, &system_prompt, &dto.query).await?;
+    let response = llm::client::call_llm(&provider, &api_key, &model, &system_prompt, &dto.query, &history).await?;
 
     // Store conversation
     let row = sqlx::query(

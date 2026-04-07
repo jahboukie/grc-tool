@@ -7,6 +7,7 @@ use crate::reports;
 
 #[tauri::command]
 pub async fn generate_report(
+    app: tauri::AppHandle,
     pool: State<'_, PgPool>,
     request: ReportRequest,
 ) -> Result<ReportResult, String> {
@@ -17,6 +18,10 @@ pub async fn generate_report(
         None, None, None,
         &format!("Generated {:?} report", request.report_type),
     ).await?;
+
+    // Auto-open the generated HTML report in the default browser
+    use tauri_plugin_shell::ShellExt;
+    let _ = app.shell().open(&file_path, None::<tauri_plugin_shell::open::Program>);
 
     Ok(ReportResult {
         file_path,

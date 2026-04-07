@@ -56,13 +56,16 @@ pub async fn call_llm(
     model: &str,
     system_prompt: &str,
     user_query: &str,
+    history: &[(String, String)],
 ) -> Result<String, String> {
     let client = reqwest::Client::new();
 
     match provider {
-        "openai" => call_openai(&client, api_key, model, system_prompt, user_query).await,
-        "anthropic" => call_anthropic(&client, api_key, model, system_prompt, user_query).await,
-        "ollama" => call_ollama(&client, model, system_prompt, user_query).await,
+        "openai" => call_openai(&client, api_key, model, system_prompt, user_query, history).await,
+        "anthropic" => call_anthropic(&client, api_key, model, system_prompt, user_query, history).await,
+        "ollama" => call_ollama(&client, model, system_prompt, user_query, history).await,
+        "lm_studio" => call_lm_studio(&client, model, system_prompt, user_query, history).await,
+        "gemini" => call_gemini(&client, api_key, model, system_prompt, user_query, history).await,
         _ => Err(format!("Unknown LLM provider: {}", provider)),
     }
 }
@@ -95,13 +98,20 @@ async fn call_openai(
     model: &str,
     system_prompt: &str,
     user_query: &str,
+    history: &[(String, String)],
 ) -> Result<String, String> {
+    let mut messages = vec![
+        OpenAiMessage { role: "system".to_string(), content: system_prompt.to_string() },
+    ];
+    for (q, r) in history {
+        messages.push(OpenAiMessage { role: "user".to_string(), content: q.clone() });
+        messages.push(OpenAiMessage { role: "assistant".to_string(), content: r.clone() });
+    }
+    messages.push(OpenAiMessage { role: "user".to_string(), content: user_query.to_string() });
+
     let request = OpenAiRequest {
         model: model.to_string(),
-        messages: vec![
-            OpenAiMessage { role: "system".to_string(), content: system_prompt.to_string() },
-            OpenAiMessage { role: "user".to_string(), content: user_query.to_string() },
-        ],
+        messages,
     };
 
     let resp = client
@@ -148,14 +158,20 @@ async fn call_anthropic(
     model: &str,
     system_prompt: &str,
     user_query: &str,
+    history: &[(String, String)],
 ) -> Result<String, String> {
+    let mut messages = Vec::new();
+    for (q, r) in history {
+        messages.push(AnthropicMessage { role: "user".to_string(), content: q.clone() });
+        messages.push(AnthropicMessage { role: "assistant".to_string(), content: r.clone() });
+    }
+    messages.push(AnthropicMessage { role: "user".to_string(), content: user_query.to_string() });
+
     let request = AnthropicRequest {
         model: model.to_string(),
         max_tokens: 4096,
         system: system_prompt.to_string(),
-        messages: vec![
-            AnthropicMessage { role: "user".to_string(), content: user_query.to_string() },
-        ],
+        messages,
     };
 
     let resp = client
@@ -191,10 +207,18 @@ async fn call_ollama(
     model: &str,
     system_prompt: &str,
     user_query: &str,
+    history: &[(String, String)],
 ) -> Result<String, String> {
+    // Ollama generate API is single-turn, so prepend history into the prompt
+    let mut full_prompt = String::new();
+    for (q, r) in history {
+        full_prompt.push_str(&format!("User: {}\nAssistant: {}\n\n", q, r));
+    }
+    full_prompt.push_str(user_query);
+
     let request = OllamaRequest {
         model: model.to_string(),
-        prompt: user_query.to_string(),
+        prompt: full_prompt,
         system: system_prompt.to_string(),
         stream: false,
     };
@@ -208,4 +232,121 @@ async fn call_ollama(
 
     let body: OllamaResponse = resp.json().await.map_err(|e| e.to_string())?;
     Ok(body.response)
+}
+
+// ── LM Studio (OpenAI-compatible local server on localhost:1234) ────
+
+async fn call_lm_studio(
+    client: &reqwest::Client,
+    model: &str,
+    system_prompt: &str,
+    user_query: &str,
+    history: &[(String, String)],
+) -> Result<String, String> {
+    let mut messages = vec![
+        OpenAiMessage { role: "system".to_string(), content: system_prompt.to_string() },
+    ];
+    for (q, r) in history {
+        messages.push(OpenAiMessage { role: "user".to_string(), content: q.clone() });
+        messages.push(OpenAiMessage { role: "assistant".to_string(), content: r.clone() });
+    }
+    messages.push(OpenAiMessage { role: "user".to_string(), content: user_query.to_string() });
+
+    let request = OpenAiRequest {
+        model: model.to_string(),
+        messages,
+    };
+
+    let resp = client
+        .post("http://localhost:1234/v1/chat/completions")
+        .json(&request)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let body: OpenAiResponse = resp.json().await.map_err(|e| e.to_string())?;
+    body.choices.first()
+        .map(|c| c.message.content.clone())
+        .ok_or_else(|| "No response from LM Studio".to_string())
+}
+
+// ── Google Gemini ──────────────────────────────────────────
+
+#[derive(Serialize)]
+struct GeminiRequest {
+    contents: Vec<GeminiContent>,
+    #[serde(rename = "systemInstruction")]
+    system_instruction: GeminiContent,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GeminiContent {
+    role: String,
+    parts: Vec<GeminiPart>,
+}
+
+#[derive(Serialize, Deserialize)]
+struct GeminiPart {
+    text: String,
+}
+
+#[derive(Deserialize)]
+struct GeminiResponse {
+    candidates: Vec<GeminiCandidate>,
+}
+
+#[derive(Deserialize)]
+struct GeminiCandidate {
+    content: GeminiContent,
+}
+
+async fn call_gemini(
+    client: &reqwest::Client,
+    api_key: &str,
+    model: &str,
+    system_prompt: &str,
+    user_query: &str,
+    history: &[(String, String)],
+) -> Result<String, String> {
+    let mut contents = Vec::new();
+    for (q, r) in history {
+        contents.push(GeminiContent {
+            role: "user".to_string(),
+            parts: vec![GeminiPart { text: q.clone() }],
+        });
+        contents.push(GeminiContent {
+            role: "model".to_string(),
+            parts: vec![GeminiPart { text: r.clone() }],
+        });
+    }
+    contents.push(GeminiContent {
+        role: "user".to_string(),
+        parts: vec![GeminiPart { text: user_query.to_string() }],
+    });
+
+    let request = GeminiRequest {
+        contents,
+        system_instruction: GeminiContent {
+            role: "user".to_string(),
+            parts: vec![GeminiPart { text: system_prompt.to_string() }],
+        },
+    };
+
+    let url = format!(
+        "https://generativelanguage.googleapis.com/v1beta/models/{}:generateContent?key={}",
+        model, api_key
+    );
+
+    let resp = client
+        .post(&url)
+        .json(&request)
+        .send()
+        .await
+        .map_err(|e| e.to_string())?;
+
+    let body: GeminiResponse = resp.json().await.map_err(|e| e.to_string())?;
+    body.candidates.first()
+        .and_then(|c| c.content.parts.first())
+        .map(|p| p.text.clone())
+        .ok_or_else(|| "No response from Gemini".to_string())
 }

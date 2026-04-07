@@ -73,6 +73,7 @@ pub fn FrameworkNavigatorPage() -> impl IntoView {
 
     let (selected_fw, set_selected_fw) = create_signal(fw_param());
     let (search_query, set_search_query) = create_signal(String::new());
+    let (risk_filter, set_risk_filter) = create_signal(String::new());
 
     // AI system selection for assessments
     let (selected_engagement_id, set_selected_engagement_id) = create_signal(Option::<String>::None);
@@ -371,14 +372,25 @@ pub fn FrameworkNavigatorPage() -> impl IntoView {
                 }).collect_view()}
             </div>
 
-            // Search
-            <div class="search-bar">
+            // Search + filters
+            <div class="search-bar" style="display:flex;gap:1rem;align-items:end;">
                 <input
                     type="search"
                     placeholder="Search requirements…"
                     prop:value=search_query
                     on:input=move |e| set_search_query.set(event_target_value(&e))
+                    style="flex:2;"
                 />
+                <label style="flex:1;min-width:140px;">"Risk Category"
+                    <select prop:value=risk_filter on:change=move |e| set_risk_filter.set(event_target_value(&e))>
+                        <option value="">"All"</option>
+                        <option value="unacceptable">"Unacceptable"</option>
+                        <option value="high">"High"</option>
+                        <option value="limited">"Limited"</option>
+                        <option value="minimal">"Minimal"</option>
+                        <option value="gpai">"GPAI"</option>
+                    </select>
+                </label>
             </div>
 
             // Main split: requirements list + detail panel
@@ -393,11 +405,26 @@ pub fn FrameworkNavigatorPage() -> impl IntoView {
 
                                 let query = search_query.get().to_lowercase();
                                 let map = assessment_map.get();
+                                let rf = risk_filter.get();
                                 let filtered: Vec<_> = reqs.into_iter().filter(|r| {
-                                    if query.is_empty() { return true; }
-                                    r.title.to_lowercase().contains(&query)
-                                        || r.reference_id.to_lowercase().contains(&query)
-                                        || r.description.to_lowercase().contains(&query)
+                                    if !query.is_empty() {
+                                        if !(r.title.to_lowercase().contains(&query)
+                                            || r.reference_id.to_lowercase().contains(&query)
+                                            || r.description.to_lowercase().contains(&query))
+                                        {
+                                            return false;
+                                        }
+                                    }
+                                    if !rf.is_empty() {
+                                        let has_cat = r.applicable_risk_categories.iter().any(|rc| {
+                                            serde_json::to_value(rc).ok()
+                                                .and_then(|v| v.as_str().map(String::from))
+                                                .map(|s| s == rf)
+                                                .unwrap_or(false)
+                                        });
+                                        if !has_cat { return false; }
+                                    }
+                                    true
                                 }).collect();
 
                                 // Group by category

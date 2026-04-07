@@ -13,6 +13,13 @@ pub async fn get_cross_references(
 }
 
 #[tauri::command]
+pub async fn list_cross_references(
+    pool: State<'_, PgPool>,
+) -> Result<Vec<CrossReferenceExpanded>, String> {
+    cross_reference::list_all(&pool).await
+}
+
+#[tauri::command]
 pub async fn list_requirements(
     pool: State<'_, PgPool>,
     framework: Option<String>,

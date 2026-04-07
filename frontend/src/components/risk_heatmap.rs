@@ -3,8 +3,10 @@ use uuid::Uuid;
 
 #[component]
 pub fn RiskHeatmap(
-    /// 5x5 matrix: [likelihood_idx][impact_idx] -> list of risk IDs
-    #[prop()] matrix: [[Vec<Uuid>; 5]; 5],
+    /// 5×5 matrix: matrix[likelihood_idx][impact_idx] -> list of risk IDs
+    #[prop()] matrix: Vec<Vec<Vec<Uuid>>>,
+    /// Optional callback when a cell is clicked: (likelihood_idx, impact_idx)
+    #[prop(optional)] on_cell_click: Option<Callback<(usize, usize)>>,
 ) -> impl IntoView {
     let impact_labels = ["Negligible", "Minor", "Moderate", "Major", "Catastrophic"];
     let likelihood_labels = ["Rare", "Unlikely", "Possible", "Likely", "Almost Certain"];
@@ -32,8 +34,18 @@ pub fn RiskHeatmap(
                                 15..=19 => "risk-very-high",
                                 _ => "risk-critical",
                             };
+                            let clickable = on_cell_click.is_some() && count > 0;
+                            let cursor = if clickable { "cursor:pointer;" } else { "" };
                             view! {
-                                <div class=format!("heatmap-cell {}", severity_class)>
+                                <div
+                                    class=format!("heatmap-cell {}", severity_class)
+                                    style=cursor
+                                    on:click=move |_| {
+                                        if let Some(cb) = on_cell_click {
+                                            cb.call((li, ii));
+                                        }
+                                    }
+                                >
                                     {if count > 0 { format!("{}", count) } else { String::new() }}
                                 </div>
                             }

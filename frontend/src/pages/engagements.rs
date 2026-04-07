@@ -286,11 +286,12 @@ pub fn EngagementsPage() -> impl IntoView {
                     Ok(list) => view! {
                         <table role="grid">
                             <thead><tr>
-                                <th>"Name"</th><th>"Client"</th><th>"Status"</th><th>"Frameworks"</th>
+                                <th>"Name"</th><th>"Client"</th><th>"Status"</th><th>"Frameworks"</th><th>"Actions"</th>
                             </tr></thead>
                             <tbody>
                                 {list.into_iter().map(|e| {
                                     let id = e.id.to_string();
+                                    let del_id = id.clone();
                                     let status_str = serde_json::to_value(&e.status)
                                         .ok()
                                         .and_then(|v| v.as_str().map(String::from))
@@ -308,6 +309,24 @@ pub fn EngagementsPage() -> impl IntoView {
                                                         .unwrap_or_default();
                                                     view! { <FrameworkPill framework=fw /> }
                                                 }).collect_view()}
+                                            </td>
+                                            <td>
+                                                <button class="secondary outline" style="padding:0.25rem 0.5rem;font-size:0.8rem;" on:click=move |_| {
+                                                    let confirm = web_sys::window()
+                                                        .and_then(|w| w.confirm_with_message("Delete this engagement and all its data? This cannot be undone.").ok())
+                                                        .unwrap_or(false);
+                                                    if confirm {
+                                                        let did = del_id.clone();
+                                                        spawn_local(async move {
+                                                            #[derive(Serialize)]
+                                                            struct DelArg { id: String }
+                                                            match invoke::call::<_, ()>("delete_engagement", &DelArg { id: did }).await {
+                                                                Ok(_) => set_refresh.update(|r| *r += 1),
+                                                                Err(e) => { web_sys::window().map(|w| w.alert_with_message(&format!("Delete failed: {e}"))); }
+                                                            }
+                                                        });
+                                                    }
+                                                }>"Delete"</button>
                                             </td>
                                         </tr>
                                     }

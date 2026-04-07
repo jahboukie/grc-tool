@@ -114,3 +114,15 @@ pub async fn unlink(pool: &PgPool, link_id: Uuid) -> Result<(), String> {
 
     Ok(())
 }
+
+pub async fn list_links(pool: &PgPool, evidence_id: Uuid) -> Result<Vec<EvidenceLink>, String> {
+    let rows = sqlx::query(
+        "SELECT * FROM evidence_links WHERE evidence_id = $1"
+    )
+    .bind(evidence_id)
+    .fetch_all(pool)
+    .await
+    .map_err(|e| e.to_string())?;
+
+    Ok(rows.iter().map(row_to_evidence_link).collect())
+}

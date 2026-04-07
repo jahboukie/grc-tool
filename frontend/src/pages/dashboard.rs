@@ -1,4 +1,5 @@
 use leptos::*;
+use leptos_router::*;
 use grc_shared::models::DashboardStats;
 
 use crate::api::invoke;
@@ -30,19 +31,22 @@ pub fn DashboardPage() -> impl IntoView {
                         </div>
                         <section class="compliance-overview">
                             <h2>"Framework Compliance"</h2>
-                            {s.compliance_by_framework.iter().map(|fc| {
+                            {s.compliance_by_framework.clone().into_iter().map(|fc| {
                                 let fw_str = serde_json::to_value(&fc.framework)
                                     .ok()
                                     .and_then(|v| v.as_str().map(String::from))
                                     .unwrap_or_default();
+                                let href = format!("/frameworks/{}", fw_str);
                                 view! {
-                                    <ComplianceBar
-                                        label=fw_str
-                                        met=fc.met
-                                        partial=fc.partial
-                                        gap=fc.gap
-                                        not_assessed=fc.not_assessed
-                                    />
+                                    <A href=href>
+                                        <ComplianceBar
+                                            label=fw_str
+                                            met=fc.met
+                                            partial=fc.partial
+                                            gap=fc.gap
+                                            not_assessed=fc.not_assessed
+                                        />
+                                    </A>
                                 }
                             }).collect_view()}
                         </section>
@@ -55,7 +59,9 @@ pub fn DashboardPage() -> impl IntoView {
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {s.priority_tasks.into_iter().map(|t| view! { <TaskRow task=t /> }).collect_view()}
+                                    {s.priority_tasks.into_iter().map(|t| {
+                                        view! { <TaskRow task=t /> }
+                                    }).collect_view()}
                                 </tbody>
                             </table>
                         </section>
