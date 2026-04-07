@@ -1,5 +1,5 @@
 use leptos::*;
-use grc_shared::models::{FrameworkRequirement, CrossReferenceExpanded};
+use grc_shared::models::{AiSystem, Engagement, FrameworkRequirement, CrossReferenceExpanded, RequirementAssessment};
 use serde::Serialize;
 use std::collections::HashMap;
 
@@ -13,6 +13,14 @@ struct CrossRefArg { requirement_id: String }
 
 #[derive(Serialize)]
 struct SearchArg { query: String }
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct EngIdArg { engagement_id: String }
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AssessmentListArg { ai_system_id: String, framework: Option<String> }
 
 const FRAMEWORKS: &[&str] = &[
     "eu_ai_act", "iso_42001", "iso_23894", "nist_ai_rmf", "oecd_ai",
@@ -33,6 +41,46 @@ fn framework_str(req: &FrameworkRequirement) -> String {
 pub fn CrossReferencePage() -> impl IntoView {
     let (search_query, set_search_query) = create_signal(String::new());
     let (selected_req, set_selected_req) = create_signal::<Option<FrameworkRequirement>>(None);
+    let (selected_eng_id, set_selected_eng_id) = create_signal(String::new());
+    let (selected_sys_id, set_selected_sys_id) = create_signal(String::new());
+
+    // Load engagements and systems for assessment context
+    let engagements = create_resource(|| (), |_| async {
+        invoke::call_no_args::<Vec<Engagement>>("list_engagements").await
+    });
+
+    let ai_systems = create_resource(
+        move || selected_eng_id.get(),
+        |eid| async move {
+            if eid.is_empty() { return Ok(vec![] as Vec<AiSystem>); }
+            invoke::call::<_, Vec<AiSystem>>("list_ai_systems", &EngIdArg { engagement_id: eid }).await
+        },
+    );
+
+    let assessments = create_resource(
+        move || selected_sys_id.get(),
+        |sid| async move {
+            if sid.is_empty() { return Ok(vec![] as Vec<RequirementAssessment>); }
+            invoke::call::<_, Vec<RequirementAssessment>>(
+                "list_assessments",
+                &AssessmentListArg { ai_system_id: sid, framework: None },
+            ).await
+        },
+    );
+
+    // Build a lookup: requirement_id → status string
+    let assessment_map = create_memo(move |_| {
+        let mut map = HashMap::<String, String>::new();
+        if let Some(Ok(list)) = assessments.get() {
+            for a in list {
+                let st = serde_json::to_value(&a.status).ok()
+                    .and_then(|v| v.as_str().map(String::from))
+                    .unwrap_or_else(|| "not_assessed".to_string());
+                map.insert(a.requirement_id.to_string(), st);
+            }
+        }
+        map
+    });
 
     // Matrix overview data
     let all_refs = create_resource(|| (), |_| async {
@@ -112,6 +160,45 @@ pub fn CrossReferencePage() -> impl IntoView {
                 })}
             </Suspense>
 
+            // AI System selector for assessment context
+            <div style="display:flex;gap:1rem;margin-bottom:1rem;flex-wrap:wrap;">
+                <label style="flex:1;min-width:200px;">"Engagement"
+                    <Suspense fallback=move || view! { <select disabled><option>"Loading…"</option></select> }>
+                        {move || engagements.get().map(|r| {
+                            let list = r.unwrap_or_default();
+                            view! {
+                                <select prop:value=selected_eng_id on:change=move |e| {
+                                    set_selected_eng_id.set(event_target_value(&e));
+                                    set_selected_sys_id.set(String::new());
+                                }>
+                                    <option value="">"— Optional: select for status —"</option>
+                                    {list.into_iter().map(|eng| {
+                                        let id = eng.id.to_string();
+                                        view! { <option value=id.clone()>{eng.name}</option> }
+                                    }).collect_view()}
+                                </select>
+                            }
+                        })}
+                    </Suspense>
+                </label>
+                <label style="flex:1;min-width:200px;">"AI System"
+                    <Suspense fallback=move || view! { <select disabled><option>"—"</option></select> }>
+                        {move || ai_systems.get().map(|r| {
+                            let list = r.unwrap_or_default();
+                            view! {
+                                <select prop:value=selected_sys_id on:change=move |e| set_selected_sys_id.set(event_target_value(&e))>
+                                    <option value="">"— Select —"</option>
+                                    {list.into_iter().map(|sys| {
+                                        let id = sys.id.to_string();
+                                        view! { <option value=id.clone()>{sys.name}</option> }
+                                    }).collect_view()}
+                                </select>
+                            }
+                        })}
+                    </Suspense>
+                </label>
+            </div>
+
             <div class="search-bar">
                 <input
                     type="search"
@@ -164,6 +251,7 @@ pub fn CrossReferencePage() -> impl IntoView {
                         <h2>"Cross-Referenced Requirements"</h2>
                         <div class="cross-ref-list">
                             {refs.into_iter().map(|cr| {
+                                let amap = assessment_map.get();
                                 let rel_str = serde_json::to_value(&cr.relationship)
                                     .ok()
                                     .and_then(|v| v.as_str().map(String::from))
@@ -172,11 +260,15 @@ pub fn CrossReferencePage() -> impl IntoView {
                                     .ok()
                                     .and_then(|v| v.as_str().map(String::from))
                                     .unwrap_or_default();
+                                let target_status = amap.get(&cr.target.id.to_string()).cloned();
                                 view! {
                                 <article class=format!("cross-ref-card relationship-{}", rel_str)>
                                     <header>
                                         <StatusBadge status=rel_str.clone() />
                                         <strong>{&cr.target.reference_id}</strong>" — "{&cr.target.title}
+                                        {target_status.map(|st| view! {
+                                            <span style="margin-left:auto;"><StatusBadge status=st /></span>
+                                        })}
                                     </header>
                                     <div>
                                         <FrameworkPill framework=fw_str />

@@ -19,6 +19,8 @@ uuid = { version = "1", features = ["v4", "serde"] }
 chrono = { version = "0.4", features = ["serde"] }
 reqwest = { version = "0.12", features = ["json"] }
 askama = "0.12"
+aes-gcm = "0.10"
+base64 = "0.22"
 tokio = { version = "1", features = ["full"] }
 grc-shared = { path = "../shared" }
 

@@ -1,6 +1,7 @@
 use tauri::Manager;
 
 mod commands;
+mod crypto;
 mod db;
 mod llm;
 mod models;

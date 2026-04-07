@@ -328,13 +328,13 @@ Priority key: **P0** = blocking/broken, **P1** = core workflow gap, **P2** = imp
 
 ### P3 — Polish & Completeness
 
-- [ ] **Settings: About section** — version number, build date
-- [ ] **Settings: Database display** — show host and port (read-only)
-- [ ] **Backend: Audit log for config updates** — `update_config` should write to audit_log
-- [ ] **Backend: API key encryption** — implement AES-256-GCM encryption for `llm_api_key_encrypted` field
-- [ ] **Cross-Reference: Assessment status on cross-ref cards** — show current AI system's assessment status for each cross-referenced requirement
-- [ ] **Task CRUD from UI** — currently tasks only shown read-only on dashboard; spec implies create/update/delete from various contexts
-- [ ] **Framework Navigator: Category filter dropdown** — within each framework tab
+- [x] **Settings: About section** — version number, build date
+- [x] **Settings: Database display** — show host and port (read-only)
+- [x] **Backend: Audit log for config updates** — `update_config` should write to audit_log
+- [x] **Backend: API key encryption** — implement AES-256-GCM encryption for `llm_api_key_encrypted` field
+- [x] **Cross-Reference: Assessment status on cross-ref cards** — show current AI system's assessment status for each cross-referenced requirement
+- [x] **Task CRUD from UI** — currently tasks only shown read-only on dashboard; spec implies create/update/delete from various contexts
+- [x] **Framework Navigator: Category filter dropdown** — within each framework tab
 
 ---
 

@@ -126,11 +126,23 @@ pub fn SettingsPage() -> impl IntoView {
                                         />
                                     </label>
                                     <label>"Database"
-                                        <input type="text" readonly value=cfg.db_name />
+                                        <input type="text" readonly value=format!(
+                                            "{} @ {}:{}",
+                                            cfg.db_name, cfg.db_host, cfg.db_port
+                                        ) />
                                     </label>
                                 </fieldset>
                                 <button type="submit">"Save Settings"</button>
                             </form>
+                            <fieldset style="margin-top:2rem;">
+                                <legend>"About"</legend>
+                                <dl>
+                                    <dt>"Product"</dt><dd>"GRC Command Center"</dd>
+                                    <dt>"Version"</dt><dd>"0.1.0"</dd>
+                                    <dt>"Build Date"</dt><dd>"2026-04-07"</dd>
+                                    <dt>"Stack"</dt><dd>"Tauri 2 · Leptos · PostgreSQL"</dd>
+                                </dl>
+                            </fieldset>
                         }.into_view()
                     }
                     Err(e) => view! { <p class="error">{format!("Error: {}", e)}</p> }.into_view(),

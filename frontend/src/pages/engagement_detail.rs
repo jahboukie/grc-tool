@@ -2,8 +2,9 @@ use leptos::*;
 use leptos_router::*;
 use grc_shared::{
     suggest_frameworks_for_scope, AiSystem, AiUseCase, AssuranceObjective, CreateAiSystemDto,
-    Engagement, Framework, IndustrySector, Jurisdiction, ObligationRole,
-    PersonalDataProfile, RiskCategory, UpdateEngagementDto,
+    CreateTaskDto, Engagement, Framework, IndustrySector, Jurisdiction, ObligationRole,
+    PersonalDataProfile, Priority, RiskCategory, Task, TaskStatus, UpdateEngagementDto,
+    UpdateTaskDto,
 };
 use serde::Serialize;
 
@@ -27,6 +28,40 @@ struct UpdateEngagementArg {
     id: String,
     dto: UpdateEngagementDto,
 }
+
+#[derive(Serialize)]
+#[serde(rename_all = "camelCase")]
+struct TaskListArg {
+    engagement_id: Option<String>,
+    status: Option<String>,
+    priority: Option<String>,
+}
+
+#[derive(Serialize)]
+struct TaskUpdateArg {
+    id: String,
+    dto: UpdateTaskDto,
+}
+
+#[derive(Serialize)]
+struct TaskDeleteArg {
+    id: String,
+}
+
+const TASK_STATUS_OPTIONS: &[(&str, &str)] = &[
+    ("open", "Open"),
+    ("in_progress", "In Progress"),
+    ("blocked", "Blocked"),
+    ("done", "Done"),
+    ("deferred", "Deferred"),
+];
+
+const PRIORITY_OPTIONS: &[(&str, &str)] = &[
+    ("critical", "Critical"),
+    ("high", "High"),
+    ("medium", "Medium"),
+    ("low", "Low"),
+];
 
 struct AiSystemSeed {
     name: String,
@@ -423,6 +458,262 @@ fn EditEngagementForm(
 }
 
 #[component]
+fn TasksSection(
+    engagement_id: String,
+    refresh: ReadSignal<u32>,
+    set_refresh: WriteSignal<u32>,
+) -> impl IntoView {
+    let eid = engagement_id.clone();
+    let (show_form, set_show_form) = create_signal(false);
+    let (task_title, set_task_title) = create_signal(String::new());
+    let (task_desc, set_task_desc) = create_signal(String::new());
+    let (task_priority, set_task_priority) = create_signal("medium".to_string());
+    let (task_due, set_task_due) = create_signal(String::new());
+    let (task_msg, set_task_msg) = create_signal::<Option<String>>(None);
+    let (is_creating, set_is_creating) = create_signal(false);
+    let (task_refresh, set_task_refresh) = create_signal(0u32);
+
+    let tasks = create_resource(
+        move || (eid.clone(), refresh.get(), task_refresh.get()),
+        |(eid, _, _)| async move {
+            invoke::call::<_, Vec<Task>>(
+                "list_tasks",
+                &TaskListArg {
+                    engagement_id: Some(eid),
+                    status: None,
+                    priority: None,
+                },
+            )
+            .await
+        },
+    );
+
+    let form_eid = engagement_id.clone();
+    let on_create = move |ev: web_sys::SubmitEvent| {
+        ev.prevent_default();
+        let eid = form_eid.clone();
+        let parsed_eid = match uuid::Uuid::parse_str(&eid) {
+            Ok(id) => id,
+            Err(_) => {
+                set_task_msg.set(Some("Invalid engagement ID.".to_string()));
+                return;
+            }
+        };
+
+        let title = task_title.get_untracked();
+        let description = task_desc.get_untracked();
+        let priority_str = task_priority.get_untracked();
+        let due_str = task_due.get_untracked();
+
+        let due_date = if due_str.is_empty() {
+            None
+        } else {
+            match chrono::NaiveDate::parse_from_str(&due_str, "%Y-%m-%d") {
+                Ok(d) => Some(d),
+                Err(_) => {
+                    set_task_msg.set(Some("Invalid date format.".to_string()));
+                    return;
+                }
+            }
+        };
+
+        let dto = CreateTaskDto {
+            engagement_id: parsed_eid,
+            ai_system_id: None,
+            title,
+            description,
+            framework: None,
+            related_requirement_id: None,
+            priority: enum_from_string::<Priority>(&priority_str),
+            due_date,
+        };
+
+        set_is_creating.set(true);
+        set_task_msg.set(None);
+
+        spawn_local(async move {
+            match invoke::call_named::<_, Task>("create_task", "dto", &dto).await {
+                Ok(t) => {
+                    set_task_title.set(String::new());
+                    set_task_desc.set(String::new());
+                    set_task_priority.set("medium".to_string());
+                    set_task_due.set(String::new());
+                    set_show_form.set(false);
+                    set_task_msg.set(Some(format!("Created task: {}", t.title)));
+                    set_task_refresh.update(|v| *v += 1);
+                }
+                Err(e) => {
+                    set_task_msg.set(Some(format!("Error: {}", e)));
+                }
+            }
+            set_is_creating.set(false);
+        });
+    };
+
+    let on_create = Callback::new(on_create);
+
+    view! {
+        <section class="tasks-section" style="margin-top:2rem;">
+            <div class="page-header" style="display:flex;justify-content:space-between;align-items:center;">
+                <h2>"Tasks"</h2>
+                <button on:click=move |_| {
+                    set_task_msg.set(None);
+                    set_show_form.update(|v| *v = !*v);
+                }>
+                    {move || if show_form.get() { "Cancel" } else { "+ Add Task" }}
+                </button>
+            </div>
+
+            {move || task_msg.get().map(|m| view! { <p class="audit-note">{m}</p> })}
+
+            <Show when=move || show_form.get()>
+                <form class="create-form" on:submit=move |ev| on_create.call(ev)>
+                    <label>
+                        "Title"
+                        <input type="text" required prop:value=task_title on:input=move |e| set_task_title.set(event_target_value(&e)) />
+                    </label>
+                    <label>
+                        "Description"
+                        <textarea prop:value=task_desc on:input=move |e| set_task_desc.set(event_target_value(&e))></textarea>
+                    </label>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <label>
+                            "Priority"
+                            <select prop:value=task_priority on:change=move |e| set_task_priority.set(event_target_value(&e))>
+                                {PRIORITY_OPTIONS.iter().copied().map(|(v, l)| view! { <option value=v>{l}</option> }).collect_view()}
+                            </select>
+                        </label>
+                        <label>
+                            "Due Date"
+                            <input type="date" prop:value=task_due on:input=move |e| set_task_due.set(event_target_value(&e)) />
+                        </label>
+                    </div>
+                    <button type="submit" prop:disabled=is_creating>
+                        {move || if is_creating.get() { "Creating…" } else { "Create Task" }}
+                    </button>
+                </form>
+            </Show>
+
+            <Suspense fallback=move || view! { <p>"Loading tasks…"</p> }>
+                {move || tasks.get().map(|result| match result {
+                    Ok(list) if list.is_empty() => view! {
+                        <p class="placeholder-text">"No tasks for this engagement yet."</p>
+                    }.into_view(),
+                    Ok(list) => view! {
+                        <table role="grid">
+                            <thead>
+                                <tr>
+                                    <th>"Title"</th>
+                                    <th>"Status"</th>
+                                    <th>"Priority"</th>
+                                    <th>"Due"</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {list.into_iter().map(|t| {
+                                    let tid = t.id.to_string();
+                                    let status_val = enum_to_string(&t.status);
+                                    let priority_val = enum_to_string(&t.priority);
+                                    let due = t.due_date.map(|d| d.to_string()).unwrap_or_default();
+                                    let status_tid = tid.clone();
+                                    let priority_tid = tid.clone();
+                                    let delete_tid = tid.clone();
+                                    let title = t.title.clone();
+                                    view! {
+                                        <tr>
+                                            <td>{title}</td>
+                                            <td>
+                                                <select
+                                                    prop:value=status_val
+                                                    on:change=move |e| {
+                                                        let new_status = event_target_value(&e);
+                                                        let id = status_tid.clone();
+                                                        spawn_local(async move {
+                                                            let _ = invoke::call::<_, Task>(
+                                                                "update_task",
+                                                                &TaskUpdateArg {
+                                                                    id,
+                                                                    dto: UpdateTaskDto {
+                                                                        title: None,
+                                                                        description: None,
+                                                                        framework: None,
+                                                                        related_requirement_id: None,
+                                                                        status: Some(enum_from_string::<TaskStatus>(&new_status)),
+                                                                        priority: None,
+                                                                        due_date: None,
+                                                                    },
+                                                                },
+                                                            ).await;
+                                                            set_task_refresh.update(|v| *v += 1);
+                                                        });
+                                                    }
+                                                >
+                                                    {TASK_STATUS_OPTIONS.iter().copied().map(|(v, l)| view! { <option value=v>{l}</option> }).collect_view()}
+                                                </select>
+                                            </td>
+                                            <td>
+                                                <select
+                                                    prop:value=priority_val
+                                                    on:change=move |e| {
+                                                        let new_priority = event_target_value(&e);
+                                                        let id = priority_tid.clone();
+                                                        spawn_local(async move {
+                                                            let _ = invoke::call::<_, Task>(
+                                                                "update_task",
+                                                                &TaskUpdateArg {
+                                                                    id,
+                                                                    dto: UpdateTaskDto {
+                                                                        title: None,
+                                                                        description: None,
+                                                                        framework: None,
+                                                                        related_requirement_id: None,
+                                                                        status: None,
+                                                                        priority: Some(enum_from_string::<Priority>(&new_priority)),
+                                                                        due_date: None,
+                                                                    },
+                                                                },
+                                                            ).await;
+                                                            set_task_refresh.update(|v| *v += 1);
+                                                        });
+                                                    }
+                                                >
+                                                    {PRIORITY_OPTIONS.iter().copied().map(|(v, l)| view! { <option value=v>{l}</option> }).collect_view()}
+                                                </select>
+                                            </td>
+                                            <td>{due}</td>
+                                            <td>
+                                                <button
+                                                    class="outline secondary"
+                                                    style="padding:0.25rem 0.5rem;font-size:0.85rem;"
+                                                    on:click=move |_| {
+                                                        let id = delete_tid.clone();
+                                                        spawn_local(async move {
+                                                            let _ = invoke::call::<_, ()>(
+                                                                "delete_task",
+                                                                &TaskDeleteArg { id },
+                                                            ).await;
+                                                            set_task_refresh.update(|v| *v += 1);
+                                                        });
+                                                    }
+                                                >
+                                                    "Delete"
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    }
+                                }).collect_view()}
+                            </tbody>
+                        </table>
+                    }.into_view(),
+                    Err(e) => view! { <p class="error">{format!("Error: {}", e)}</p> }.into_view(),
+                })}
+            </Suspense>
+        </section>
+    }
+}
+
+#[component]
 pub fn EngagementDetailPage() -> impl IntoView {
     let params = use_params_map();
     let query = use_query_map();
@@ -733,6 +1024,8 @@ pub fn EngagementDetailPage() -> impl IntoView {
                     })}
                 </Suspense>
             </section>
+
+            <TasksSection engagement_id=id() refresh=refresh set_refresh=set_refresh />
 
             <section style="margin-top:2rem;">
                 <h2>"Evidence & Reports"</h2>

@@ -451,6 +451,7 @@ pub enum AuditAction {
     Deleted,
     LlmQueried,
     SystemExported,
+    ConfigUpdated,
 }
 
 // ─────────────────────────────────────────────

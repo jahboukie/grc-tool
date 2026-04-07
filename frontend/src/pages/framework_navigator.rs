@@ -74,6 +74,7 @@ pub fn FrameworkNavigatorPage() -> impl IntoView {
     let (selected_fw, set_selected_fw) = create_signal(fw_param());
     let (search_query, set_search_query) = create_signal(String::new());
     let (risk_filter, set_risk_filter) = create_signal(String::new());
+    let (category_filter, set_category_filter) = create_signal(String::new());
 
     // AI system selection for assessments
     let (selected_engagement_id, set_selected_engagement_id) = create_signal(Option::<String>::None);
@@ -160,6 +161,19 @@ pub fn FrameworkNavigatorPage() -> impl IntoView {
             ).await
         },
     );
+
+    // Derive unique category names from loaded requirements
+    let category_options = create_memo(move |_| {
+        let mut cats = Vec::<String>::new();
+        if let Some(Ok(reqs)) = requirements.get() {
+            for r in &reqs {
+                if !cats.contains(&r.category) {
+                    cats.push(r.category.clone());
+                }
+            }
+        }
+        cats
+    });
 
     // Load cross-references for selected requirement
     let cross_refs = create_resource(
@@ -391,6 +405,15 @@ pub fn FrameworkNavigatorPage() -> impl IntoView {
                         <option value="gpai">"GPAI"</option>
                     </select>
                 </label>
+                <label style="flex:1;min-width:160px;">"Category"
+                    <select prop:value=category_filter on:change=move |e| set_category_filter.set(event_target_value(&e))>
+                        <option value="">"All"</option>
+                        {move || category_options.get().into_iter().map(|cat| {
+                            let val = cat.clone();
+                            view! { <option value=val>{cat}</option> }
+                        }).collect_view()}
+                    </select>
+                </label>
             </div>
 
             // Main split: requirements list + detail panel
@@ -406,6 +429,7 @@ pub fn FrameworkNavigatorPage() -> impl IntoView {
                                 let query = search_query.get().to_lowercase();
                                 let map = assessment_map.get();
                                 let rf = risk_filter.get();
+                                let cf = category_filter.get();
                                 let filtered: Vec<_> = reqs.into_iter().filter(|r| {
                                     if !query.is_empty() {
                                         if !(r.title.to_lowercase().contains(&query)
@@ -423,6 +447,9 @@ pub fn FrameworkNavigatorPage() -> impl IntoView {
                                                 .unwrap_or(false)
                                         });
                                         if !has_cat { return false; }
+                                    }
+                                    if !cf.is_empty() && r.category != cf {
+                                        return false;
                                     }
                                     true
                                 }).collect();

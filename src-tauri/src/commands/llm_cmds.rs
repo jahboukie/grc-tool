@@ -3,6 +3,7 @@ use sqlx::{PgPool, Row};
 use uuid::Uuid;
 use grc_shared::*;
 use crate::models::audit;
+use crate::crypto;
 use crate::llm;
 
 #[tauri::command]
@@ -17,7 +18,8 @@ pub async fn query_llm(
         .map_err(|e| e.to_string())?;
 
     let provider: String = config_row.get("llm_provider");
-    let api_key: String = config_row.get("llm_api_key_encrypted");
+    let api_key_encrypted: String = config_row.get("llm_api_key_encrypted");
+    let api_key = crypto::decrypt(&api_key_encrypted).unwrap_or(api_key_encrypted);
     let model: String = config_row.get("llm_model");
 
     // Build context from engagement/system if provided

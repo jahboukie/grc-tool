@@ -1,6 +1,8 @@
 use tauri::State;
 use sqlx::{PgPool, Row};
 use grc_shared::*;
+use crate::models::audit;
+use crate::crypto;
 
 #[tauri::command]
 pub async fn get_config(
@@ -29,6 +31,12 @@ pub async fn update_config(
     pool: State<'_, PgPool>,
     dto: UpdateConfigDto,
 ) -> Result<AppConfig, String> {
+    // Encrypt API key if provided
+    let encrypted_key = match &dto.llm_api_key {
+        Some(key) if !key.is_empty() => Some(crypto::encrypt(key)?),
+        _ => None,
+    };
+
     let row = sqlx::query(
         "UPDATE app_config SET
             llm_provider = COALESCE($1, llm_provider),
@@ -39,14 +47,14 @@ pub async fn update_config(
          RETURNING *"
     )
     .bind(&dto.llm_provider)
-    .bind(&dto.llm_api_key)
+    .bind(&encrypted_key)
     .bind(&dto.llm_model)
     .bind(&dto.evidence_storage_path)
     .fetch_one(&*pool)
     .await
     .map_err(|e| e.to_string())?;
 
-    Ok(AppConfig {
+    let result = AppConfig {
         id: row.get("id"),
         llm_provider: row.get("llm_provider"),
         llm_api_key_encrypted: row.get("llm_api_key_encrypted"),
@@ -56,5 +64,12 @@ pub async fn update_config(
         db_port: row.get("db_port"),
         db_name: row.get("db_name"),
         updated_at: row.get("updated_at"),
-    })
+    };
+
+    audit::log(
+        &pool, "app_config", result.id, AuditAction::ConfigUpdated,
+        None, None, None, "Configuration updated",
+    ).await?;
+
+    Ok(result)
 }
