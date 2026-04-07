@@ -228,7 +228,13 @@ async fn call_ollama(
         .json(&request)
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            if e.is_connect() {
+                "Ollama is not running. Start it with `ollama serve` and load a model, then try again.".to_string()
+            } else {
+                e.to_string()
+            }
+        })?;
 
     let body: OllamaResponse = resp.json().await.map_err(|e| e.to_string())?;
     Ok(body.response)
@@ -262,7 +268,13 @@ async fn call_lm_studio(
         .json(&request)
         .send()
         .await
-        .map_err(|e| e.to_string())?;
+        .map_err(|e| {
+            if e.is_connect() {
+                "LM Studio is not running. Start LM Studio, load a model, and ensure the local server is active on port 1234.".to_string()
+            } else {
+                e.to_string()
+            }
+        })?;
 
     let body: OpenAiResponse = resp.json().await.map_err(|e| e.to_string())?;
     body.choices.first()
