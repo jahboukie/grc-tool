@@ -11,6 +11,17 @@ pub async fn build_context(
     llm::build_context_from_db(pool, engagement_id, ai_system_id).await
 }
 
+fn framework_display_name(id: &str) -> &str {
+    match id {
+        "eu_ai_act" => "EU AI Act",
+        "iso_42001" => "ISO/IEC 42001",
+        "iso_23894" => "ISO/IEC 23894",
+        "nist_ai_rmf" => "NIST AI RMF",
+        "oecd_ai_principles" => "OECD AI Principles",
+        other => other,
+    }
+}
+
 pub fn build_system_prompt(context: &Option<LlmContext>) -> String {
     let base = "You are an AI Governance regulatory assistant for a Certified AI Governance Professional. \
                 Provide responses that: 1) Reference specific articles, clauses, and sections, \
@@ -36,7 +47,8 @@ pub fn build_system_prompt(context: &Option<LlmContext>) -> String {
         prompt.push_str(&format!(", Domain: {}", domain));
     }
     if !ctx.frameworks.is_empty() {
-        prompt.push_str(&format!("\n- Frameworks in scope: {}", ctx.frameworks.join(", ")));
+        let names: Vec<&str> = ctx.frameworks.iter().map(|f| framework_display_name(f)).collect();
+        prompt.push_str(&format!("\n- Frameworks in scope: {}", names.join(", ")));
     }
     prompt.push_str(&format!("\n- Compliance: {}/{} requirements met ({}%)", ctx.met_count, ctx.total_count, pct));
 
