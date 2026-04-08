@@ -12,6 +12,7 @@ use crate::components::engagement_intake::{
 };
 use crate::components::status_badge::StatusBadge;
 use crate::components::framework_pill::FrameworkPill;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 use serde::Serialize;
 
 #[derive(Serialize)]
@@ -147,6 +148,17 @@ pub fn EngagementsPage() -> impl IntoView {
                 </button>
             </div>
 
+            <HelpPanel title="Engagements Help">
+                <HelpSection heading="What is an Engagement?">
+                    <p>"An Engagement is a scoped GRC review or audit project for a specific client. It captures the organizational context, regulatory scope, and risk profile that drive framework selection and assessment."</p>
+                </HelpSection>
+                <HelpSection heading="Creating an Engagement">
+                    <p>"Click '+ New Engagement' to open the intake form. Fill in the client name and scoping fields (role, industry, jurisdiction, use case). The system will auto-suggest applicable frameworks based on your selections. Review and adjust the suggestions, then click Create."</p>
+                </HelpSection>
+                <HelpSection heading="Scoping Fields">
+                    <p>"Primary Role determines your client's obligations (Provider builds AI, Deployer operates it). Industry and Jurisdiction affect which frameworks and requirements apply. AI Use Case and Personal Data Profile trigger specific regulatory provisions."</p>
+                </HelpSection>
+            </HelpPanel>
             <Show when=move || show_form.get()>
                 <form on:submit=move |ev| on_create.call(ev) class="create-form">
                     <div class="intake-grid">

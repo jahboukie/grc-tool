@@ -6,6 +6,7 @@ use crate::api::invoke;
 use crate::components::stat_card::StatCard;
 use crate::components::compliance_bar::ComplianceBar;
 use crate::components::task_row::TaskRow;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 
 #[component]
 pub fn DashboardPage() -> impl IntoView {
@@ -15,8 +16,17 @@ pub fn DashboardPage() -> impl IntoView {
 
     view! {
         <div class="page dashboard-page">
-            <h1>"Command Center"</h1>
-            <Suspense fallback=move || view! { <p>"Loading dashboard…"</p> }>
+            <h1>"Command Center"</h1>            <HelpPanel title="Dashboard Help">
+                <HelpSection heading="KPI Cards">
+                    <p>"The eight cards at the top show key metrics: active engagements, AI systems under review, open tasks and risks, compliance gaps, evidence items, and FRIA status. A rising gap count or overdue tasks signal areas needing attention."</p>
+                </HelpSection>
+                <HelpSection heading="Compliance Bars">
+                    <p>"Each horizontal bar represents one framework. Green = Met, Amber = Partial, Red = Gap, Grey = Not Assessed. Click any bar to jump directly into that framework's requirements in the Framework Navigator."</p>
+                </HelpSection>
+                <HelpSection heading="Priority Tasks">
+                    <p>"The bottom table lists recent open remediation tasks. Click through to the linked engagement for action."</p>
+                </HelpSection>
+            </HelpPanel>            <Suspense fallback=move || view! { <p>"Loading dashboard…"</p> }>
                 {move || stats.get().map(|result| match result {
                     Ok(s) => view! {
                         <div class="stats-grid">

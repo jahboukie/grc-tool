@@ -7,6 +7,7 @@ use grc_shared::{
     UpdateTaskDto,
 };
 use serde::Serialize;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 
 use crate::api::invoke;
 use crate::components::engagement_intake::{
@@ -840,6 +841,17 @@ pub fn EngagementDetailPage() -> impl IntoView {
 
     view! {
         <div class="page engagement-detail-page">
+            <HelpPanel title="Engagement Detail Help">
+                <HelpSection heading="Overview">
+                    <p>"This page shows all details for a single engagement: metadata, scoping fields, linked AI systems, and tasks. Use 'Edit Intake' to update scoping fields or framework selections."</p>
+                </HelpSection>
+                <HelpSection heading="AI Systems">
+                    <p>"Add AI systems that are being assessed within this engagement. Each system gets its own risk classification, requirement assessments, evidence links, and FRIA."</p>
+                </HelpSection>
+                <HelpSection heading="Tasks">
+                    <p>"Tasks are remediation work items linked to this engagement. Create tasks for each identified gap, set priorities and target dates, and track progress to completion."</p>
+                </HelpSection>
+            </HelpPanel>
             <Suspense fallback=move || view! { <p>"Loading engagement…"</p> }>
                 {move || engagement.get().map(|result| match result {
                     Ok(e) => {

@@ -13,6 +13,7 @@ use crate::pages::{
     fria::FriaPage,
     framework_navigator::FrameworkNavigatorPage,
     gap_analysis::GapAnalysisPage,
+    guide::GuidePage,
     llm_assistant::LlmAssistantPage,
     reports::ReportsPage,
     risk_matrix::RiskMatrixPage,
@@ -44,6 +45,7 @@ pub fn App() -> impl IntoView {
                         <Route path="/audit-trail" view=AuditTrailPage />
                         <Route path="/assistant" view=LlmAssistantPage />
                         <Route path="/settings" view=SettingsPage />
+                        <Route path="/guide" view=GuidePage />
                     </Routes>
                 </main>
             </div>

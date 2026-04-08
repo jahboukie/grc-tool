@@ -1,5 +1,6 @@
 pub mod dashboard;
 pub mod engagements;
+pub mod guide;
 pub mod engagement_detail;
 pub mod ai_system_detail;
 pub mod fria;

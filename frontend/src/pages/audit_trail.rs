@@ -4,6 +4,7 @@ use serde::Serialize;
 
 use crate::api::invoke;
 use crate::components::audit_row::AuditRow;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -51,6 +52,17 @@ pub fn AuditTrailPage() -> impl IntoView {
     view! {
         <div class="page audit-trail-page">
             <h1>"Audit Trail"</h1>
+            <HelpPanel title="Audit Trail Help">
+                <HelpSection heading="Immutable Log">
+                    <p>"Every action in the system is logged here and cannot be modified or deleted. Database triggers enforce immutability. This satisfies EU AI Act Article 12 (record-keeping) and ISO 42001 Clause 7.5 (documented information) requirements."</p>
+                </HelpSection>
+                <HelpSection heading="Filtering">
+                    <p>"Filter by entity type (engagement, AI system, assessment, etc.), action (Created, Updated, Deleted), or search by entity ID. Navigate pages with Previous/Next buttons (50 entries per page)."</p>
+                </HelpSection>
+                <HelpSection heading="What Gets Logged">
+                    <p>"Every entity creation, every update (with before/after values for changed fields), every deletion, and every configuration change. Each entry records timestamp (UTC), entity type, entity ID, action, and field-level changes."</p>
+                </HelpSection>
+            </HelpPanel>
             <p class="audit-note">"Immutable log of all system changes."</p>
             <div class="filter-bar" style="display:flex;gap:1rem;flex-wrap:wrap;align-items:end;margin-bottom:1rem;">
                 <label style="min-width:140px;">"Entity Type"

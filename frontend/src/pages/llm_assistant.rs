@@ -4,6 +4,7 @@ use serde::Serialize;
 
 use crate::api::invoke;
 use crate::components::chat_bubble::ChatBubble;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -112,6 +113,17 @@ pub fn LlmAssistantPage() -> impl IntoView {
     view! {
         <div class="page llm-assistant-page">
             <h1>"AI Governance Assistant"</h1>
+            <HelpPanel title="AI Assistant Help">
+                <HelpSection heading="Getting Started">
+                    <p>"Configure your LLM provider in Settings first (Ollama for local/private use, or OpenAI/Anthropic/Gemini for cloud). Then select an engagement and AI system for contextual answers."</p>
+                </HelpSection>
+                <HelpSection heading="Good Questions">
+                    <p>"Ask about framework requirements ('What transparency obligations apply to high-risk credit scoring?'), remediation strategies ('Draft a remediation plan for insufficient explainability'), or cross-framework analysis ('How does ISO 23894 risk assessment relate to EU AI Act Article 9?')."</p>
+                </HelpSection>
+                <HelpSection heading="Important Note">
+                    <p>"LLM outputs are guidance only, not authoritative compliance determinations. Always verify against the actual regulatory text and apply professional judgment."</p>
+                </HelpSection>
+            </HelpPanel>
             <Suspense fallback=|| ()>
                 {move || config.get().flatten().map(|cfg| {
                     if cfg.llm_provider.is_empty() { return view! {}.into_view(); }

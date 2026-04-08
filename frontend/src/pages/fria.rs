@@ -6,6 +6,7 @@ use uuid::Uuid;
 
 use crate::api::invoke;
 use crate::components::status_badge::StatusBadge;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 use grc_shared::{
     AiSystem, CreateAiSystemDto, Engagement, Evidence, FriaAssessment, FriaNotificationStatus,
     FriaStatus, RiskCategory, RiskEntry, Task, UpsertFriaAssessmentDto,
@@ -405,6 +406,17 @@ pub fn FriaPage() -> impl IntoView {
             <div class="page-header">
                 <h1>"Fundamental Rights Impact Assessment"</h1>
             </div>
+            <HelpPanel title="FRIA Help">
+                <HelpSection heading="When is a FRIA Required?">
+                    <p>"Article 27 of the EU AI Act requires deployers of high-risk AI systems to conduct a FRIA before putting the system into use. This applies especially to credit scoring, employment decisions, law enforcement, and public services."</p>
+                </HelpSection>
+                <HelpSection heading="Completing the FRIA">
+                    <p>"Select the engagement and AI system, then work through each section: scope and deployer context, affected groups, rights and risks, human oversight measures, mitigations, and consultation/notification status. Save frequently as you progress."</p>
+                </HelpSection>
+                <HelpSection heading="Linking Artifacts">
+                    <p>"The FRIA integrates with risks, tasks, and evidence. Identified rights risks should be registered in the Risk Matrix. Mitigation measures should be tracked as tasks. Supporting documentation should be uploaded to the Evidence Vault."</p>
+                </HelpSection>
+            </HelpPanel>
             <p class="audit-note">
                 "Use this workspace to record the Article 27 assessment, link supporting risks and evidence, and track notification readiness."
             </p>

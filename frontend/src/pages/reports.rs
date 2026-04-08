@@ -3,6 +3,7 @@ use grc_shared::models::{AiSystem, Engagement, ReportRequest, ReportResult, Repo
 use serde::Serialize;
 
 use crate::api::invoke;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -90,6 +91,14 @@ pub fn ReportsPage() -> impl IntoView {
     view! {
         <div class="page reports-page">
             <h1>"Reports"</h1>
+            <HelpPanel title="Reports Help">
+                <HelpSection heading="Report Types">
+                    <p>"Compliance Report: full framework status with every requirement, assessment, and remediation plan. Gap Analysis Report: focused on gaps and partial assessments only. Risk Report: risk register with heatmap visualization (requires AI system selection)."</p>
+                </HelpSection>
+                <HelpSection heading="Generating Reports">
+                    <p>"Select an engagement, choose the report type, and click Generate. Reports are rendered as HTML and opened in your default browser. Use Ctrl+P from the browser to print or save as PDF."</p>
+                </HelpSection>
+            </HelpPanel>
             <p>"Generate HTML compliance reports that open in your default browser."</p>
 
             <div class="scope-selectors" style="display:flex;gap:1rem;align-items:end;margin-bottom:1.5rem;">

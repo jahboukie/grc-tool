@@ -1,6 +1,7 @@
 pub mod sidebar;
 pub mod stat_card;
 pub mod compliance_bar;
+pub mod help_panel;
 pub mod risk_heatmap;
 pub mod task_row;
 pub mod requirement_row;

@@ -6,6 +6,7 @@ use std::collections::HashMap;
 use crate::api::invoke;
 use crate::components::framework_pill::FrameworkPill;
 use crate::components::status_badge::StatusBadge;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -111,6 +112,14 @@ pub fn CrossReferencePage() -> impl IntoView {
     view! {
         <div class="page cross-reference-page">
             <h1>"Cross-Reference Map"</h1>
+            <HelpPanel title="Cross-References Help">
+                <HelpSection heading="What Are Cross-References?">
+                    <p>"Cross-references show how requirements relate across frameworks. Relationship types: Equivalent (same obligation), Overlapping (shared ground), Supports (contributes to), Extends (goes beyond). Use these to avoid duplicate assessments."</p>
+                </HelpSection>
+                <HelpSection heading="Using the Matrix">
+                    <p>"The matrix at the top shows link counts between framework pairs. Below, search for a requirement to see its cross-references. Select an engagement and AI system to see assessment status alongside cross-referenced requirements."</p>
+                </HelpSection>
+            </HelpPanel>
 
             // Matrix overview
             <Suspense fallback=move || view! { <p>"Loading matrix…"</p> }>

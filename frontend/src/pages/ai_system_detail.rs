@@ -6,6 +6,7 @@ use serde::Serialize;
 
 use crate::api::invoke;
 use crate::components::status_badge::StatusBadge;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 
 #[derive(Serialize)]
 struct IdArg { id: String }
@@ -107,8 +108,17 @@ pub fn AiSystemDetailPage() -> impl IntoView {
     };
 
     view! {
-        <div class="page ai-system-detail-page">
-            <Suspense fallback=move || view! { <p>"Loading system…"</p> }>
+        <div class="page ai-system-detail-page">            <HelpPanel title="AI System Help">
+                <HelpSection heading="Classification">
+                    <p>"Risk Category follows the EU AI Act classification: Unacceptable, High, Limited, or Minimal. High-risk systems under Annex III trigger the most extensive obligations including FRIA, conformity assessment, and post-market monitoring."</p>
+                </HelpSection>
+                <HelpSection heading="Flags">
+                    <p>"GPAI = General-Purpose AI model (triggers GPAI-specific requirements). Annex III = listed high-risk category (biometrics, critical infrastructure, employment, etc.). Safety Component = AI that is a safety component of another product."</p>
+                </HelpSection>
+                <HelpSection heading="Assessments & Evidence">
+                    <p>"Below, you'll find recent requirement assessments and linked evidence for this system. Navigate to the Framework Navigator for full assessment workflow, or the Risk Matrix and FRIA for detailed risk and rights analysis."</p>
+                </HelpSection>
+            </HelpPanel>            <Suspense fallback=move || view! { <p>"Loading system…"</p> }>
                 {move || {
                     system.get().map(|result| match result {
                     Ok(s) => {

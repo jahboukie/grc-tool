@@ -11,6 +11,7 @@ use uuid::Uuid;
 
 use crate::api::invoke;
 use crate::components::framework_pill::FrameworkPill;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 use crate::components::requirement_row::RequirementRow;
 
 #[derive(Serialize)]
@@ -299,6 +300,17 @@ pub fn FrameworkNavigatorPage() -> impl IntoView {
     view! {
         <div class="page framework-navigator-page">
             <h1>"Framework Navigator"</h1>
+            <HelpPanel title="Framework Navigator Help">
+                <HelpSection heading="How It Works">
+                    <p>"Select a framework tab, then browse or search requirements on the left. Click a requirement to see its full text, guidance, and cross-references on the right. Use the assessment editor to record your compliance judgment (Met, Partial, Gap, N/A)."</p>
+                </HelpSection>
+                <HelpSection heading="Assessment Workflow">
+                    <p>"Select the engagement and AI system at the top, then work through each requirement. For Met, describe your supporting evidence. For Partial or Gap, enter a remediation plan. Cross-references help you avoid duplicate work across frameworks."</p>
+                </HelpSection>
+                <HelpSection heading="Tips">
+                    <p>"Start with EU AI Act for legally binding obligations, then use cross-references to fill in ISO and NIST requirements faster. Use the search bar to jump to specific topics like 'transparency' or 'human oversight'."</p>
+                </HelpSection>
+            </HelpPanel>
 
             // AI System selector
             <div class="system-selector">

@@ -16,6 +16,7 @@ pub fn Sidebar() -> impl IntoView {
         ("/audit-trail", "Audit Trail", "audit-trail"),
         ("/assistant", "AI Assistant", "assistant"),
         ("/settings", "Settings", "settings"),
+        ("/guide", "User Guide", "guide"),
     ];
 
     view! {

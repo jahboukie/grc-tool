@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use crate::api::invoke;
 use crate::components::evidence_card::EvidenceCard;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 
 const EVIDENCE_TYPES: &[(&str, &str)] = &[
     ("policy_document", "Policy Document"),
@@ -258,8 +259,17 @@ pub fn EvidenceVaultPage() -> impl IntoView {
         <div class="page evidence-vault-page">
             <div class="page-header">
                 <h1>"Evidence Vault"</h1>
-            </div>
-
+            </div>            <HelpPanel title="Evidence Vault Help">
+                <HelpSection heading="Uploading Evidence">
+                    <p>"Click 'Upload Evidence' to add a file. Choose the evidence type (Policy, Technical, Audit, Testing, etc.), add a description and tags. Evidence is stored locally and cataloged in the database."</p>
+                </HelpSection>
+                <HelpSection heading="Linking Evidence">
+                    <p>"After uploading, link evidence to assessments, risks, or tasks using the Link button on each evidence card. This creates an audit trail connecting documents to your compliance judgments."</p>
+                </HelpSection>
+                <HelpSection heading="Organization">
+                    <p>"Evidence is scoped to engagements. Use the type filter to narrow the view. Search by filename, description, or tags. Common tags: 'bias', 'model-card', 'quarterly-review', 'human-oversight'."</p>
+                </HelpSection>
+            </HelpPanel>
             <Suspense fallback=move || view! { <p>"Loading engagements…"</p> }>
                 {move || engagements.get().map(|result| match result {
                     Ok(list) if list.is_empty() => view! {

@@ -5,6 +5,7 @@ use grc_shared::models::{AiSystem, Engagement, GapAnalysisData, ReportRequest, R
 use crate::api::invoke;
 use crate::components::framework_pill::FrameworkPill;
 use crate::components::status_badge::StatusBadge;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
@@ -74,6 +75,17 @@ pub fn GapAnalysisPage() -> impl IntoView {
                     });
                 }>"Generate Gap Report"</button>
             </div>
+            <HelpPanel title="Gap Analysis Help">
+                <HelpSection heading="What It Shows">
+                    <p>"The Gap Analysis aggregates all your assessments and highlights non-compliant areas. Summary bars show gap counts per framework. Expand each framework to see individual Gap and Partial assessments with remediation plans."</p>
+                </HelpSection>
+                <HelpSection heading="Using Gap Analysis">
+                    <p>"Focus on gaps that affect multiple frameworks first — check cross-references. One remediation may close gaps in several frameworks. Use the 'Generate Gap Report' button to create an HTML report for stakeholders."</p>
+                </HelpSection>
+                <HelpSection heading="Tips">
+                    <p>"Prioritize EU AI Act transparency and human oversight requirements for high-risk systems — these are regulatory enforcement priorities. Create tasks from gaps to track remediation progress."</p>
+                </HelpSection>
+            </HelpPanel>
             {move || report_msg.get().map(|m| view! { <p style="font-size:0.85rem;">{m}</p> })}
             <div style="display:flex;gap:1rem;align-items:end;flex-wrap:wrap;margin-bottom:1rem;">
                 <label style="flex:1;min-width:200px;">"Engagement"

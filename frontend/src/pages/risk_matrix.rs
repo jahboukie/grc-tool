@@ -8,6 +8,7 @@ use serde::Serialize;
 use uuid::Uuid;
 
 use crate::api::invoke;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 use crate::components::risk_heatmap::RiskHeatmap;
 
 // ── IPC arg types ──────────────────────────────────────────
@@ -301,6 +302,17 @@ pub fn RiskMatrixPage() -> impl IntoView {
     view! {
         <div class="page risk-matrix-page">
             <h1>"Risk Assessment Matrix"</h1>
+            <HelpPanel title="Risk Matrix Help">
+                <HelpSection heading="Risk Heatmap">
+                    <p>"The 5×5 heatmap plots risks on Likelihood (1-5) × Impact (1-5). Colors range from green (low) to red (critical). Click any cell to filter the register to risks at that intersection."</p>
+                </HelpSection>
+                <HelpSection heading="Scoring Guide">
+                    <p>"Likelihood: 1=Rare, 2=Unlikely, 3=Possible, 4=Likely, 5=Almost Certain. Impact: 1=Negligible, 2=Minor, 3=Moderate, 4=Major, 5=Severe. Score inherent risk first, then residual risk after mitigations."</p>
+                </HelpSection>
+                <HelpSection heading="Managing Risks">
+                    <p>"Click 'Add Risk' to register a new risk. Enter title, description, category, likelihood/impact scores, and mitigation measures. Link evidence to risks in the Evidence Vault. Track risk status: Open, Mitigated, Accepted, Transferred, or Closed."</p>
+                </HelpSection>
+            </HelpPanel>
 
             // ── Scope selectors ────────────────────────────
             <div class="scope-selectors" style="display:flex;gap:1rem;align-items:end;margin-bottom:1rem;">

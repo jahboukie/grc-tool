@@ -2,6 +2,7 @@ use leptos::*;
 use grc_shared::models::{AppConfig, UpdateConfigDto};
 
 use crate::api::invoke;
+use crate::components::help_panel::{HelpPanel, HelpSection};
 
 const LOCAL_PROVIDERS: &[(&str, &str)] = &[
     ("ollama", "Ollama"),
@@ -70,6 +71,17 @@ pub fn SettingsPage() -> impl IntoView {
     view! {
         <div class="page settings-page">
             <h1>"Settings"</h1>
+            <HelpPanel title="Settings Help">
+                <HelpSection heading="LLM Provider">
+                    <p>"Choose between local providers (Ollama, LM Studio) for privacy-sensitive work, or cloud providers (OpenAI, Anthropic, Gemini) for more powerful models. Cloud providers require an API key."</p>
+                </HelpSection>
+                <HelpSection heading="Recommended Setup">
+                    <p>"For sensitive compliance work, use Ollama (local, free, private). Install from ollama.ai, run 'ollama pull llama3.1', then select Ollama provider and llama3.1 model here."</p>
+                </HelpSection>
+                <HelpSection heading="Evidence Path">
+                    <p>"The evidence storage path sets where uploaded evidence files are stored on your local filesystem. Choose a location you back up regularly."</p>
+                </HelpSection>
+            </HelpPanel>
             <Suspense fallback=move || view! { <p>"Loading settings…"</p> }>
                 {move || config.get().map(|result| match result {
                     Ok(cfg) => {
